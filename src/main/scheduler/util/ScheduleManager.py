@@ -10,6 +10,7 @@ NO_SPACE_ALLOWED_MSG = "Please do not contain any space in your password!\n"
 
 class ScheduleManager:
     def check_password(password):
+
         at_least_eight_char_check = True
         mixture_upper_and_lower_check = True
         mixture_alpha_and_num_check = True
@@ -64,4 +65,26 @@ class ScheduleManager:
         
         return True
     
+    def show_caregiver_schedule(available_user, vaccine_status):
+        # caregivers
+        if len(available_user) == 0:
+            print("There are no caregivers available on this date!")
+            print("Please search another date.")
+        else:
+            header = "---Available Caregivers---"
+            print(header)
+            for user in available_user:
+                print("{}".format(user['Username']).center(len(header), "-"))
+        
+        print()
+
+        # vaccines
+        if len(vaccine_status) == 0:
+            print("Vaccine supply insufficient")
+        else:
+            header = "---Available Vaccines---"
+            print(header)
+            for vaccine in vaccine_status:
+                print("{} -> {}".format(vaccine['Name'], vaccine['Doses']).center(len(header), "-"))    
+                
     

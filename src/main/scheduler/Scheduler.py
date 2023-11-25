@@ -1,7 +1,7 @@
 from model.Vaccine import Vaccine
 from model.Caregiver import Caregiver
 from model.Patient import Patient
-from util import ScheduleManager
+from util.ScheduleManager import ScheduleManager
 from util.Util import Util
 from db.ConnectionManager import ConnectionManager
 import pymssql
@@ -222,16 +222,67 @@ def login_caregiver(tokens):
 
 
 def search_caregiver_schedule(tokens):
-    """
-    TODO: Part 2
-    """
-    pass
+    # Both patients and caregivers can perform this operation.
+    # Output the username for the caregivers that are available for the date, 
+    # along with the number of available doses left for each vaccine. Order by the username of the caregiver. 
+    # Separate each attribute with a space.
+    # If no user is logged in, print “Please login first!”.
+    # For all other errors, print "Please try again!".
+    
+    # check1: if any user login.
+    global current_caregiver, current_patient
+    if current_caregiver is None and current_patient is None:
+        print("Please login first.")
+        return
+    
+    # check 2: the length for tokens need to be exactly 2 to include all information (with the operation name)
+    if len(tokens) != 2:
+        print("Please try again!")
+        print("Please check your command as -> search_caregiver_schedule <date>")
+        return
+    
+    # check 3: check if input date format is valid.
+    date = tokens[1].lower()
+    try:
+        date_tokens = date.split("-")
+        month = int(date_tokens[0])
+        day = int(date_tokens[1])
+        year = int(date_tokens[2])
+        d = datetime.datetime(year, month, day)
+    except ValueError:
+        print("Please enter a valid date!")
+        return
+    
+    cm = ConnectionManager()
+    conn = cm.create_connection()
+    
+    try:
+        cursor = conn.cursor(as_dict=True)
+        select_availability = "SELECT * FROM Availabilities WHERE Time = %s ORDER BY Username"
+        select_vaccine = "SELECT * FROM Vaccines"
+        cursor.execute(select_availability, d)
+        available_user = cursor.fetchall()
+        cursor.execute(select_vaccine)
+        vaccine_status = cursor.fetchall()
+        ScheduleManager.show_caregiver_schedule(available_user, vaccine_status)
+    except pymssql.Error as e:
+        print("Search caregiver schedule Failed")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when searching caregiver schedule")
+        print("Error:", e)
+        return
 
 
 def reserve(tokens):
-    """
-    TODO: Part 2
-    """
+    # Patients perform this operation to reserve an appointment.
+    # Caregivers can only see a maximum of one patient per day, meaning that if the reservation went through, the caregiver is no longer available for that date.
+    # If there are available caregivers, choose the caregiver by alphabetical order and print “Appointment ID: {appointment_id}, Caregiver username: {username}” for the reservation.
+    # If there’s no available caregiver, print “No Caregiver is available!”. If not enough vaccine doses are available, print "Not enough available doses!".
+    # If no user is logged in, print “Please login first!”. If the current user logged in is not a patient, print “Please login as a patient!”.
+    # For all other errors, print "Please try again!".
+
     pass
 
 
@@ -302,9 +353,10 @@ def availability_exist_caregiver(date, username):
 
 
 def cancel(tokens):
-    """
-    TODO: Extra Credit
-    """
+    # Both caregivers and patients should be able to cancel an existing appointment. 
+    # Implement the cancel operation for both caregivers and patients. 
+    # Hint: both the patient’s schedule and the caregiver’s schedule should reflect the change when an appointment is canceled.
+
     pass
 
 
@@ -372,9 +424,12 @@ def add_doses(tokens):
 
 
 def show_appointments(tokens):
-    '''
-    TODO: Part 2
-    '''
+    # Output the scheduled appointments for the current user (both patients and caregivers). 
+    # For caregivers, you should print the appointment ID, vaccine name, date, and patient name. Order by the appointment ID. Separate each attribute with a space.
+    # For patients, you should print the appointment ID, vaccine name, date, and caregiver name. Order by the appointment ID. Separate each attribute with a space.
+    # If no user is logged in, print “Please login first!”.
+    # For all other errors, print "Please try again!".
+
     pass
 
 
@@ -411,6 +466,7 @@ def show_command():
     print("> show_appointments")
     print("> logout")
     print("> Quit")
+    print("> Help")
     print()
 
 
@@ -460,11 +516,15 @@ def start():
         elif operation == "quit":
             print("Bye!")
             stop = True
+        elif operation == "help":
+            show_command()
         else:
             print("Invalid operation name!")
 
         if operation != "quit":
-            show_command()
+            print()
+            print("use Help to show commands.")
+            print()
 
 if __name__ == "__main__":
     '''
