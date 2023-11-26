@@ -8,6 +8,7 @@ CREATE TABLE Caregivers (
 CREATE TABLE Availabilities (
     Time date,
     Username varchar(255), 
+    Status BIT NOT NULL, -- 1: True (booked) 0: False, add this attribute because I don't want to use delete (data loss) or subquery (time consuming) to control "reserve".
     FOREIGN KEY (Username) REFERENCES Caregivers,
     PRIMARY KEY (Time, Username)
 );

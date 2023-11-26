@@ -258,7 +258,7 @@ def search_caregiver_schedule(tokens):
     
     try:
         cursor = conn.cursor(as_dict=True)
-        select_availability = "SELECT * FROM Availabilities WHERE Time = %s ORDER BY Username"
+        select_availability = "SELECT * FROM Availabilities WHERE Time = %s AND Status = '0' ORDER BY Username"
         select_vaccine = "SELECT * FROM Vaccines"
         cursor.execute(select_availability, d)
         available_user = cursor.fetchall()
@@ -272,7 +272,8 @@ def search_caregiver_schedule(tokens):
     except Exception as e:
         print("Error occurred when searching caregiver schedule")
         print("Error:", e)
-        return
+    finally:
+        cm.close_connection()
 
 
 def reserve(tokens):
@@ -283,6 +284,108 @@ def reserve(tokens):
     # If no user is logged in, print “Please login first!”. If the current user logged in is not a patient, print “Please login as a patient!”.
     # For all other errors, print "Please try again!".
 
+     # check1: if any patient login.
+    global current_caregiver, current_patient
+    if current_caregiver is None and current_patient is None:
+        print("Please login first.")
+        return
+    if current_patient is None:
+        print("Please login as a patient.")
+        return
+    
+    # check 2: the length for tokens need to be exactly 3 to include all information (with the operation name)
+    if len(tokens) != 3:
+        print("Please try again!")
+        print("Please check your command as -> reserve <date> <vaccine>")
+        return
+    
+    # check 3: check if input date format is valid.
+    date = tokens[1].lower()
+    try:
+        date_tokens = date.split("-")
+        month = int(date_tokens[0])
+        day = int(date_tokens[1])
+        year = int(date_tokens[2])
+        d = datetime.datetime(year, month, day)
+    except ValueError:
+        print("Please enter a valid date!")
+        return
+    
+    
+    # check 4 check if any caregiver availabile on this date and if vaccine has enough doses.
+    vaccine_name = tokens[2].lower()
+    availability = search_availability(d)
+    vaccine_enough = vaccine_available(vaccine_name)
+
+    if not availability or not vaccine_enough:
+        print("Please try another date or another vaccine.")
+        return
+    
+    # reserve
+    reserve_result = current_patient.reserve(vaccine_name, availability)
+    if reserve_result != -1:
+        print("Appointment confirmed!")
+        print("Appointment ID: {appointment_id}, Caregiver username: {username}".format(appointment_id=reserve_result, username=availability['Username']))
+
+    # update availability and doses
+    update_availability(availability, 'book')
+    update_doses(vaccine_name, '')
+
+
+def search_availability(date):
+    cm = ConnectionManager()
+    conn = cm.create_connection()
+    try:
+        cursor = conn.cursor(as_dict=True)
+        select_availability = "SELECT TOP 1 * FROM Availabilities WHERE Time = %s AND Status = '0' ORDER BY Username"  
+        cursor.execute(select_availability, date)
+        availablility = cursor.fetchone()
+        if not availablility:
+            print("No Caregiver is available!")
+    except pymssql.Error as e:
+        print("Search Failed")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when searching schedule")
+        print("Error:", e)
+        return {}
+    finally:
+        cm.close_connection()
+    return availablility
+
+
+def vaccine_available(vaccine_name):
+    cm = ConnectionManager()
+    conn = cm.create_connection()
+    try:
+        cursor = conn.cursor(as_dict=True)
+        select_vaccine = "SELECT * FROM Vaccines WHERE Name = %s"
+        cursor.execute(select_vaccine, vaccine_name)
+        vaccine_status = cursor.fetchone()
+        if not vaccine_status:
+            print("This vaccine is not available!")
+            return False
+        if vaccine_status['Doses'] == 0:
+            print("Not enough available doses!")
+            return False
+    except pymssql.Error as e:
+        print("Search Failed")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when searching schedule")
+        print("Error:", e)
+    finally:
+        cm.close_connection()
+    return True
+
+
+def update_availability(availability, method='book'):
+    pass
+
+
+def update_doses(vaccine_name, method):
     pass
 
 
@@ -314,7 +417,7 @@ def upload_availability(tokens):
     
     # check 4: check if date is already availbale for the caregiver.
     if availability_exist_caregiver(d, current_caregiver.get_username()):
-        print("This date is already set available. Try another date!")
+        print("This date is already update. Try another date!")
         return
     
     try:
@@ -523,7 +626,7 @@ def start():
 
         if operation != "quit":
             print()
-            print("use Help to show commands.")
+            print("use Help to browse commands.")
             print()
 
 if __name__ == "__main__":
