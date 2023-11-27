@@ -66,7 +66,7 @@ class Patient:
         finally:
             cm.close_connection()
 
-    def reserve(self, vaccine_name, availability):
+    def reserve(self, vaccine_name, availability, id=""):
         cm = ConnectionManager()
         conn = cm.create_connection()
         try:
@@ -75,14 +75,9 @@ class Patient:
             cursor.execute(reserve_appointment, (self.username, vaccine_name, availability['Time'], availability['Username']))
             conn.commit()
             cursor.execute("SELECT @@IDENTITY AS GeneratedID")
-            return cursor.fetchone()[0]
-        except pymssql.Error as e:
-            print("Reserve Failed")
-            print("Db-Error:", e)
-            quit()
-        except Exception as e:
-            print("Error occurred when reserving")
-            print("Error:", e)
+            id = cursor.fetchone()[0]
+        except pymssql.Error:
+            raise
         finally:
             cm.close_connection()
-        return -1
+        return id

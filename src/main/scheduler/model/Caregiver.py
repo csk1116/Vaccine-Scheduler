@@ -73,7 +73,7 @@ class Caregiver:
         conn = cm.create_connection()
         cursor = conn.cursor()
 
-        add_availability = "INSERT INTO Availabilities VALUES (%s , %s)"
+        add_availability = "INSERT INTO Availabilities VALUES (%s , %s , 0)"
         try:
             cursor.execute(add_availability, (d, self.username))
             # you must call commit() to persist your data if you don't set autocommit to True

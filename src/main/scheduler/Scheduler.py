@@ -258,7 +258,7 @@ def search_caregiver_schedule(tokens):
     
     try:
         cursor = conn.cursor(as_dict=True)
-        select_availability = "SELECT * FROM Availabilities WHERE Time = %s AND Status = '0' ORDER BY Username"
+        select_availability = "SELECT * FROM Availabilities WHERE Time = %s AND Status = 0 ORDER BY Username"
         select_vaccine = "SELECT * FROM Vaccines"
         cursor.execute(select_availability, d)
         available_user = cursor.fetchall()
@@ -315,21 +315,36 @@ def reserve(tokens):
     # check 4 check if any caregiver availabile on this date and if vaccine has enough doses.
     vaccine_name = tokens[2].lower()
     availability = search_availability(d)
-    vaccine_enough = vaccine_available(vaccine_name)
+    vaccine = vaccine_available(vaccine_name)
 
-    if not availability or not vaccine_enough:
+    if not availability or not vaccine:
         print("Please try another date or another vaccine.")
         return
     
+    # update availability and doses
+    if not update_availability(availability, 1):
+        print("Please try again!")
+        return
+    if not update_doses(vaccine, -1):
+        print("Please try again!")
+        return
+
     # reserve
-    reserve_result = current_patient.reserve(vaccine_name, availability)
-    if reserve_result != -1:
+    try:
+        reserve_result = current_patient.reserve(vaccine_name, availability)
+    except pymssql.Error as e:
+        print("Reserve Failed")
+        print("Please try again!")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when reserving")
+        print("Please try again!")
+        print("Error:", e)
+        return
+    if reserve_result != "":
         print("Appointment confirmed!")
         print("Appointment ID: {appointment_id}, Caregiver username: {username}".format(appointment_id=reserve_result, username=availability['Username']))
-
-    # update availability and doses
-    update_availability(availability, 'book')
-    update_doses(vaccine_name, '')
 
 
 def search_availability(date):
@@ -337,7 +352,7 @@ def search_availability(date):
     conn = cm.create_connection()
     try:
         cursor = conn.cursor(as_dict=True)
-        select_availability = "SELECT TOP 1 * FROM Availabilities WHERE Time = %s AND Status = '0' ORDER BY Username"  
+        select_availability = "SELECT TOP 1 * FROM Availabilities WHERE Time = %s AND Status = 0 ORDER BY Username"  
         cursor.execute(select_availability, date)
         availablility = cursor.fetchone()
         if not availablility:
@@ -365,10 +380,8 @@ def vaccine_available(vaccine_name):
         vaccine_status = cursor.fetchone()
         if not vaccine_status:
             print("This vaccine is not available!")
-            return False
         if vaccine_status['Doses'] == 0:
             print("Not enough available doses!")
-            return False
     except pymssql.Error as e:
         print("Search Failed")
         print("Db-Error:", e)
@@ -378,15 +391,78 @@ def vaccine_available(vaccine_name):
         print("Error:", e)
     finally:
         cm.close_connection()
-    return True
+    return vaccine_status
 
 
-def update_availability(availability, method='book'):
-    pass
+def update_availability(availability, method):
+    if method == 1:
+        set_availability = "UPDATE Availabilities SET Status = 1 WHERE Time = %s AND Username = %s"
+    elif method == 0:
+        set_availability = "UPDATE Availabilities SET Status = 0 WHERE Time = %s AND Username = %s"
+    else:
+        print("Invalid method")
+        return False
+
+    cm = ConnectionManager()
+    conn = cm.create_connection()
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute(set_availability, (availability['Time'], availability['Username']))
+        conn.commit()
+        return True
+    except pymssql.Error as e:
+        print("Error occurred when updating availability")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when updating availability")
+        print("Error:", e)
+    finally:
+        cm.close_connection()
+    return False
 
 
-def update_doses(vaccine_name, method):
-    pass
+def update_doses(vaccine, method):
+
+    current_vaccine = None
+    try:
+        current_vaccine = Vaccine(vaccine['Name'], vaccine['Doses']).get()
+    except pymssql.Error as e:
+        print("Error occurred when getting vaccine")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when getting vaccine")
+        print("Error:", e)
+        return False
+    
+    if method == 1:
+        try:
+            current_vaccine.increase_available_doses(1)
+            return True
+        except pymssql.Error as e:
+            print("Error occurred when updating doses")
+            print("Db-Error:", e)
+            quit()
+        except Exception as e:
+            print("Error occurred when updating doses")
+            print("Error:", e)
+    elif method == -1:
+        # if the vaccine is not null, meaning that the vaccine already exists in our table
+        try:
+            current_vaccine.decrease_available_doses(1)
+            return True
+        except pymssql.Error as e:
+            print("Error occurred when updating doses")
+            print("Db-Error:", e)
+            quit()
+        except Exception as e:
+            print("Error occurred when updating doses")
+            print("Error:", e)
+    else:
+        print("Invalid method!")
+    return False
 
 
 def upload_availability(tokens):
