@@ -2,6 +2,7 @@ import sys
 sys.path.append("../util/*")
 sys.path.append("../db/*")
 from util.Util import Util
+from util.ScheduleManager import ScheduleManager
 from db.ConnectionManager import ConnectionManager
 import pymssql
 
@@ -80,6 +81,20 @@ class Caregiver:
             conn.commit()
         except pymssql.Error:
             # print("Error occurred when updating caregiver availability")
+            raise
+        finally:
+            cm.close_connection()
+    
+    def show_appointments(self):
+        cm = ConnectionManager()
+        conn = cm.create_connection()
+        cursor = conn.cursor(as_dict=True)
+        reserved_appointment = "SELECT * FROM Appointments WHERE CaregiverName = %s ORDER BY ID"
+        try:
+            cursor.execute(reserved_appointment, self.username)
+            caregiver_appointments = cursor.fetchall()
+            ScheduleManager.list_appointment(caregiver_appointments, "CaregiverName")
+        except pymssql.Error:
             raise
         finally:
             cm.close_connection()

@@ -2,6 +2,7 @@ import sys
 sys.path.append("../util/*")
 sys.path.append("../db/*")
 from util.Util import Util
+from util.ScheduleManager import ScheduleManager
 from db.ConnectionManager import ConnectionManager
 import pymssql
 
@@ -69,9 +70,9 @@ class Patient:
     def reserve(self, vaccine_name, availability, id=""):
         cm = ConnectionManager()
         conn = cm.create_connection()
+        cursor = conn.cursor()
+        reserve_appointment = "INSERT INTO Appointments (PatientName, VaccineName, Time, CaregiverName) VALUES (%s , %s , %s , %s)"
         try:
-            cursor = conn.cursor()
-            reserve_appointment = "INSERT INTO Appointments (PatientName, VaccineName, Time, CaregiverName) VALUES (%s , %s , %s , %s)"
             cursor.execute(reserve_appointment, (self.username, vaccine_name, availability['Time'], availability['Username']))
             conn.commit()
             cursor.execute("SELECT @@IDENTITY AS GeneratedID")
@@ -81,3 +82,17 @@ class Patient:
         finally:
             cm.close_connection()
         return id
+    
+    def show_appointments(self):
+        cm = ConnectionManager()
+        conn = cm.create_connection()
+        cursor = conn.cursor(as_dict=True)
+        reserved_appointment = "SELECT * FROM Appointments WHERE PatientName = %s ORDER BY ID"
+        try:
+            cursor.execute(reserved_appointment, self.username)
+            patient_appointments = cursor.fetchall()
+            ScheduleManager.list_appointment(patient_appointments, 'PatientName')
+        except pymssql.Error:
+            raise
+        finally:
+            cm.close_connection()

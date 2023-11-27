@@ -85,6 +85,15 @@ class ScheduleManager:
             header = "---Available Vaccines---"
             print(header)
             for vaccine in vaccine_status:
-                print("{} -> {}".format(vaccine['Name'], vaccine['Doses']).center(len(header), "-"))    
+                print("{} -> {}".format(vaccine['Name'], vaccine['Doses']).center(len(header), "-"))   
+
+    def list_appointment(appointments, user):
+        if len(appointments) == 0:
+            print("You don't have any appointment.")
+        else:
+            print("Your Appointments:")
+            print("{:<15} {:<15} {:<15} {:<15}".format("AppointmentID", "VaccineName", "Date", user))
+            for appointment in appointments:
+                print("{:<15} {:<15} {:<15} {:<15}".format(appointment['ID'], appointment['VaccineName'], str(appointment['Time']), appointment[user]))
                 
     

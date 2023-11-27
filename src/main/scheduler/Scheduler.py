@@ -284,7 +284,7 @@ def reserve(tokens):
     # If no user is logged in, print “Please login first!”. If the current user logged in is not a patient, print “Please login as a patient!”.
     # For all other errors, print "Please try again!".
 
-     # check1: if any patient login.
+    # check1: if any patient login.
     global current_caregiver, current_patient
     if current_caregiver is None and current_patient is None:
         print("Please login first.")
@@ -535,7 +535,20 @@ def cancel(tokens):
     # Both caregivers and patients should be able to cancel an existing appointment. 
     # Implement the cancel operation for both caregivers and patients. 
     # Hint: both the patient’s schedule and the caregiver’s schedule should reflect the change when an appointment is canceled.
+    
+    # check1: if any patient login.
+    global current_caregiver, current_patient
+    if current_caregiver is None and current_patient is None:
+        print("Please login first.")
+        return
 
+    # check 2: the length for tokens need to be exactly 2 to include all information (with the operation name)
+    if len(tokens) != 2:
+        print("Please try again!")
+        print("Please check your command as -> cancel <appointment_id>")
+        return
+    
+    
     pass
 
 
@@ -608,8 +621,29 @@ def show_appointments(tokens):
     # For patients, you should print the appointment ID, vaccine name, date, and caregiver name. Order by the appointment ID. Separate each attribute with a space.
     # If no user is logged in, print “Please login first!”.
     # For all other errors, print "Please try again!".
-
-    pass
+    
+    # check1: if any patient login.
+    global current_caregiver, current_patient
+    if current_caregiver is None and current_patient is None:
+        print("Please login first.")
+        return
+    
+    try:
+        if current_caregiver:
+            current_caregiver.show_appointments()
+            return
+        if current_patient:
+            current_patient.show_appointments()
+            return
+    except pymssql.Error as e:
+        print("show Appointments Failed")
+        print("Please try again!")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when showing appointments")
+        print("Please try again!")
+        print("Error:", e)
 
 
 def logout(tokens):
