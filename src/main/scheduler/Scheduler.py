@@ -317,11 +317,14 @@ def reserve(tokens):
     availability = search_availability(d)
     vaccine = vaccine_available(vaccine_name)
 
+    if vaccine and vaccine['Doses'] == 0:
+        print("Not enough available doses!")
+        print("Please try another vaccine.")
+        return
     if not availability or not vaccine:
-        if vaccine and vaccine['Doses'] == 0:
-            print("Not enough available doses!")
         print("Please try another date or another vaccine.")
         return
+    
     
     # update availability and doses
     if not update_availability(availability, 1):
@@ -550,10 +553,17 @@ def cancel(tokens):
         return
     
     # check 3: check if this id exist or is canceled
-    id = tokens[1].lower()
-    appointment = appointment_exist(id)
+    try:
+        id = int(tokens[1])
+    except ValueError:
+        print("Please enter a valid ID!")
+        return
+    
+    user = current_caregiver.get_username() if current_caregiver else current_patient.get_username()
+    appointment = appointment_exist(id, user)
     if not appointment:
-        print("This appointment has already canceled or does not exist.")
+        print("This appointment has already canceled or you don't have this appointment.")
+        print("Please make sure you your appointment ID is correct.")
         return
     
     # update availability and doses
@@ -573,10 +583,11 @@ def cancel(tokens):
     # cancel
     cm = ConnectionManager()
     conn = cm.create_connection()
-    cancel_appointment = "UPDATE Appointments SET Status = 1 WHERE ID = %s"
     try:
         cursor = conn.cursor()
+        cancel_appointment = "UPDATE Appointments SET Status = 0 WHERE ID = %d"
         cursor.execute(cancel_appointment, id)
+        conn.commit()
         print("Cancel confirmed: Appointment ID:{}".format(id))
     except pymssql.Error as e:
         print("Cancel Appointment Failed")
@@ -591,14 +602,14 @@ def cancel(tokens):
         cm.close_connection()
 
 
-def appointment_exist(id):
+def appointment_exist(id, user):
     cm = ConnectionManager()
     conn = cm.create_connection()
 
-    select_appointment = "SELECT Status FROM Appointments WHERE ID = %s AND Status = 1"
+    select_appointment = "SELECT * FROM Appointments WHERE ID = %d AND Status = 1 AND (CaregiverName = %s OR PatientName = %s)"
     try:
         cursor = conn.cursor(as_dict=True)
-        cursor.execute(select_appointment, id)
+        cursor.execute(select_appointment, (id, user, user))
         appointment = cursor.fetchone()
     except pymssql.Error as e:
         print("Error occurred when checking appointment")
