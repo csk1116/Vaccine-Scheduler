@@ -89,11 +89,11 @@ class Caregiver:
         cm = ConnectionManager()
         conn = cm.create_connection()
         cursor = conn.cursor(as_dict=True)
-        reserved_appointment = "SELECT * FROM Appointments WHERE CaregiverName = %s ORDER BY ID"
+        reserved_appointment = "SELECT * FROM Appointments WHERE CaregiverName = %s AND Status = 1 ORDER BY ID"
         try:
             cursor.execute(reserved_appointment, self.username)
             caregiver_appointments = cursor.fetchall()
-            ScheduleManager.list_appointment(caregiver_appointments, "CaregiverName")
+            ScheduleManager.list_appointment(caregiver_appointments, "PatientName")
         except pymssql.Error:
             raise
         finally:

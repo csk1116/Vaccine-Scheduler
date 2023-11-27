@@ -70,6 +70,7 @@ class ScheduleManager:
         if len(available_user) == 0:
             print("There are no caregivers available on this date!")
             print("Please search another date.")
+            return
         else:
             header = "---Available Caregivers---"
             print(header)
@@ -80,7 +81,7 @@ class ScheduleManager:
 
         # vaccines
         if len(vaccine_status) == 0:
-            print("Vaccine supply insufficient")
+            print("Vaccine supply insufficient.")
         else:
             header = "---Available Vaccines---"
             print(header)

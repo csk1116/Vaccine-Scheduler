@@ -32,6 +32,7 @@ CREATE TABLE Appointments (
     VaccineName varchar(255), 
     Time date, 
     CaregiverName varchar(255),
+    Status BIT NOT NULL, -- 1: True 0: False (canceled), add this attribute because I don't want to use delete or update (data loss) to control "cancel".
     FOREIGN KEY (PatientName) REFERENCES Patients(Username),
     FOREIGN KEY (VaccineName) REFERENCES Vaccines(Name),
     FOREIGN KEY (Time, CaregiverName) REFERENCES Availabilities(Time, Username),

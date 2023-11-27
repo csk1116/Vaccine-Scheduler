@@ -71,7 +71,7 @@ class Patient:
         cm = ConnectionManager()
         conn = cm.create_connection()
         cursor = conn.cursor()
-        reserve_appointment = "INSERT INTO Appointments (PatientName, VaccineName, Time, CaregiverName) VALUES (%s , %s , %s , %s)"
+        reserve_appointment = "INSERT INTO Appointments (PatientName, VaccineName, Time, CaregiverName, Status) VALUES (%s , %s , %s , %s , 1)"
         try:
             cursor.execute(reserve_appointment, (self.username, vaccine_name, availability['Time'], availability['Username']))
             conn.commit()
@@ -87,11 +87,11 @@ class Patient:
         cm = ConnectionManager()
         conn = cm.create_connection()
         cursor = conn.cursor(as_dict=True)
-        reserved_appointment = "SELECT * FROM Appointments WHERE PatientName = %s ORDER BY ID"
+        reserved_appointment = "SELECT * FROM Appointments WHERE PatientName = %s AND Status = 1 ORDER BY ID"
         try:
             cursor.execute(reserved_appointment, self.username)
             patient_appointments = cursor.fetchall()
-            ScheduleManager.list_appointment(patient_appointments, 'PatientName')
+            ScheduleManager.list_appointment(patient_appointments, 'CaregiverName')
         except pymssql.Error:
             raise
         finally:

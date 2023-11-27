@@ -318,6 +318,8 @@ def reserve(tokens):
     vaccine = vaccine_available(vaccine_name)
 
     if not availability or not vaccine:
+        if vaccine and vaccine['Doses'] == 0:
+            print("Not enough available doses!")
         print("Please try another date or another vaccine.")
         return
     
@@ -326,6 +328,7 @@ def reserve(tokens):
         print("Please try again!")
         return
     if not update_doses(vaccine, -1):
+        update_availability(availability, 0)
         print("Please try again!")
         return
 
@@ -380,8 +383,6 @@ def vaccine_available(vaccine_name):
         vaccine_status = cursor.fetchone()
         if not vaccine_status:
             print("This vaccine is not available!")
-        if vaccine_status['Doses'] == 0:
-            print("Not enough available doses!")
     except pymssql.Error as e:
         print("Search Failed")
         print("Db-Error:", e)
@@ -548,8 +549,67 @@ def cancel(tokens):
         print("Please check your command as -> cancel <appointment_id>")
         return
     
+    # check 3: check if this id exist or is canceled
+    id = tokens[1].lower()
+    appointment = appointment_exist(id)
+    if not appointment:
+        print("This appointment has already canceled or does not exist.")
+        return
     
-    pass
+    # update availability and doses
+    availability = {"Time": appointment['Time'], "Username": appointment['CaregiverName'], "Status": 1}
+    vaccine = vaccine_available(appointment['VaccineName'])
+    if not vaccine:
+        print("Please try again!")
+        return
+    if not update_availability(availability, 0):
+        print("Please try again!")
+        return
+    if not update_doses(vaccine, 1):
+        update_availability(availability, 1)
+        print("Please try again!")
+        return
+
+    # cancel
+    cm = ConnectionManager()
+    conn = cm.create_connection()
+    cancel_appointment = "UPDATE Appointments SET Status = 1 WHERE ID = %s"
+    try:
+        cursor = conn.cursor()
+        cursor.execute(cancel_appointment, id)
+        print("Cancel confirmed: Appointment ID:{}".format(id))
+    except pymssql.Error as e:
+        print("Cancel Appointment Failed")
+        print("Please try again!")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when canceling appointment")
+        print("Please try again!")
+        print("Error:", e)
+    finally:
+        cm.close_connection()
+
+
+def appointment_exist(id):
+    cm = ConnectionManager()
+    conn = cm.create_connection()
+
+    select_appointment = "SELECT Status FROM Appointments WHERE ID = %s AND Status = 1"
+    try:
+        cursor = conn.cursor(as_dict=True)
+        cursor.execute(select_appointment, id)
+        appointment = cursor.fetchone()
+    except pymssql.Error as e:
+        print("Error occurred when checking appointment")
+        print("Db-Error:", e)
+        quit()
+    except Exception as e:
+        print("Error occurred when checking appointment")
+        print("Error:", e)
+    finally:
+        cm.close_connection()
+    return appointment
 
 
 def add_doses(tokens):
@@ -718,7 +778,7 @@ def start():
             reserve(tokens)
         elif operation == "upload_availability":
             upload_availability(tokens)
-        elif operation == cancel:
+        elif operation == "cancel":
             cancel(tokens)
         elif operation == "add_doses":
             add_doses(tokens)
