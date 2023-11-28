@@ -222,13 +222,6 @@ def login_caregiver(tokens):
 
 
 def search_caregiver_schedule(tokens):
-    # Both patients and caregivers can perform this operation.
-    # Output the username for the caregivers that are available for the date, 
-    # along with the number of available doses left for each vaccine. Order by the username of the caregiver. 
-    # Separate each attribute with a space.
-    # If no user is logged in, print “Please login first!”.
-    # For all other errors, print "Please try again!".
-    
     # check1: if any user login.
     global current_caregiver, current_patient
     if current_caregiver is None and current_patient is None:
@@ -277,13 +270,6 @@ def search_caregiver_schedule(tokens):
 
 
 def reserve(tokens):
-    # Patients perform this operation to reserve an appointment.
-    # Caregivers can only see a maximum of one patient per day, meaning that if the reservation went through, the caregiver is no longer available for that date.
-    # If there are available caregivers, choose the caregiver by alphabetical order and print “Appointment ID: {appointment_id}, Caregiver username: {username}” for the reservation.
-    # If there’s no available caregiver, print “No Caregiver is available!”. If not enough vaccine doses are available, print "Not enough available doses!".
-    # If no user is logged in, print “Please login first!”. If the current user logged in is not a patient, print “Please login as a patient!”.
-    # For all other errors, print "Please try again!".
-
     # check1: if any patient login.
     global current_caregiver, current_patient
     if current_caregiver is None and current_patient is None:
@@ -399,6 +385,7 @@ def vaccine_available(vaccine_name):
 
 
 def update_availability(availability, method):
+    # method = 1 -> book, method = 0 -> unbook 
     if method == 1:
         set_availability = "UPDATE Availabilities SET Status = 1 WHERE Time = %s AND Username = %s"
     elif method == 0:
@@ -428,7 +415,7 @@ def update_availability(availability, method):
 
 
 def update_doses(vaccine, method):
-
+    # method = 1 -> increase 1, method = -1 -> decrease 1
     current_vaccine = None
     try:
         current_vaccine = Vaccine(vaccine['Name'], vaccine['Doses']).get()
@@ -536,10 +523,6 @@ def availability_exist_caregiver(date, username):
 
 
 def cancel(tokens):
-    # Both caregivers and patients should be able to cancel an existing appointment. 
-    # Implement the cancel operation for both caregivers and patients. 
-    # Hint: both the patient’s schedule and the caregiver’s schedule should reflect the change when an appointment is canceled.
-    
     # check1: if any patient login.
     global current_caregiver, current_patient
     if current_caregiver is None and current_patient is None:
@@ -687,12 +670,6 @@ def add_doses(tokens):
 
 
 def show_appointments(tokens):
-    # Output the scheduled appointments for the current user (both patients and caregivers). 
-    # For caregivers, you should print the appointment ID, vaccine name, date, and patient name. Order by the appointment ID. Separate each attribute with a space.
-    # For patients, you should print the appointment ID, vaccine name, date, and caregiver name. Order by the appointment ID. Separate each attribute with a space.
-    # If no user is logged in, print “Please login first!”.
-    # For all other errors, print "Please try again!".
-    
     # check1: if any patient login.
     global current_caregiver, current_patient
     if current_caregiver is None and current_patient is None:
