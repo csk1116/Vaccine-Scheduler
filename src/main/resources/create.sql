@@ -27,7 +27,7 @@ CREATE TABLE Patients (
 );
 
 CREATE TABLE Appointments (
-    ID int IDENTITY(0,1),
+    ID int IDENTITY(0,1), -- id starts from 0, and increment by 1
     PatientName varchar(255), 
     VaccineName varchar(255), 
     Time date, 
